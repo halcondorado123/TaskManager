@@ -1,7 +1,73 @@
 ﻿@page "/"
+@using TaskManager.Application.DTO.DTO
+@using TaskManager.Application.DTO.ViewModel
+@using TaskManager.Application.Interface
+
+@inject IAppService<TaskItemDTO, TaskItemVM> TaskService
 
 <PageTitle>Home</PageTitle>
 
 <h1>Hello, world!</h1>
+<p>Welcome to your new app.</p>
 
-Welcome to your new app.
+@if (tasks == null)
+{
+    <p><em>Loading...</em></p>
+}
+else if (!tasks.Any())
+{
+    <p>No tasks found.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Title</th>
+                <th>Descripción</th>
+                <th>Estado</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var task in tasks)
+            {
+                <tr>
+                    <td>@task.Id</td>
+                    <td>@task.Title</td>
+                    <td>@task.Description</td>
+                    <td>@task.StatusName</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteTask(task.Id)">Delete</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<TaskItemVM> tasks;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Cargar la primera página con 10 registros
+        var pagedResult = await TaskService.GetAllAsync(1, 10);
+        tasks = pagedResult.Items.ToList();
+    }
+
+    private async Task DeleteTask(int id)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete task {id}?");
+        if (!confirmed) return;
+
+        await TaskService.DeleteAsync(id);
+        // Recargar grilla
+        var pagedResult = await TaskService.GetAllAsync(1, 10);
+        tasks = pagedResult.Items.ToList();
+    }
+
+    [Inject]
+    private IJSRuntime JS { get; set; }
+}

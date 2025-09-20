@@ -6,4 +6,13 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="15.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TaskManager.Application.Interface\TaskManager.Application.Interface.csproj" />
+    <ProjectReference Include="..\TaskManager.Domain.Interface\TaskManager.Domain.Interface.csproj" />
+  </ItemGroup>
+
 </Project>

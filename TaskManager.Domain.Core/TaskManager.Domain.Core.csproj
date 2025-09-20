@@ -6,4 +6,15 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.20" />
+    <PackageReference Include="System.Linq" Version="4.3.0" />
+    <PackageReference Include="System.Linq.Expressions" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TaskManager.Domain.Interface\TaskManager.Domain.Interface.csproj" />
+    <ProjectReference Include="..\TaskManager.Infraestructure.Interface\TaskManager.Infraestructure.Interface.csproj" />
+  </ItemGroup>
+
 </Project>

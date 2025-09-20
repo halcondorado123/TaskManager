@@ -1,5 +1,9 @@
+using Microsoft.Extensions.DependencyInjection;
+using TaskManager.Application.Interface;
+using TaskManager.Application.Service;
 using TaskManager.Components;
 using TaskManager.Extensions;
+using TaskManager.Transversal.Mapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
