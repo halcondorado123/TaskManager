@@ -78,14 +78,42 @@ namespace TaskManager.Testing.Test.Services
             Assert.Equal("Pending", result.Items.First().StatusName);
         }
 
-
         [Fact]
         public async Task GetByIdAsync_ShouldReturnMappedEntity_WhenEntityExists()
         {
             // Arrange
-            var entity = new TaskItemME { Id = 1, Title = "Test", DueDate = DateTime.UtcNow, StatusId = 1, Status = new TaskStatusME { Id = 1, Name = "Open" } };
+            var entity = new TaskItemME
+            {
+                Id = 1,
+                Title = "Test",
+                DueDate = DateTime.UtcNow,
+                StatusId = 1,
+                Status = new TaskStatusME { Id = 1, Name = "Pendiente" }
+            };
+
+            var expectedVm = new TaskItemVM
+            {
+                Id = entity.Id,
+                Title = entity.Title,
+                StatusId = entity.StatusId,
+                StatusName = entity.Status?.Name,
+                DueDate = entity.DueDate
+            };
+
+            // Mock del dominio
             _domainMock.Setup(d => d.GetByIdAsync(1)).ReturnsAsync(entity);
-            _mapperMock.Setup(m => m.Map<TaskItemME>(entity)).Returns(entity);
+
+            // Mock del mapper: Entity → ViewModel
+            _mapperMock.Setup(m => m.Map<TaskItemVM>(It.IsAny<TaskItemME>()))
+                .Returns((TaskItemME src) => new TaskItemVM
+                {
+                    Id = src.Id,
+                    Title = src.Title,
+                    StatusId = src.StatusId,
+                    StatusName = src.Status?.Name,
+                    DueDate = src.DueDate
+                });
+
 
             // Act
             var result = await _service.GetByIdAsync(1);
@@ -93,23 +121,53 @@ namespace TaskManager.Testing.Test.Services
             // Assert
             Assert.NotNull(result);
             Assert.Equal("Test", result.Title);
+            Assert.Equal("Pendiente", result.StatusName);
         }
 
+
         [Fact]
-        public async Task AddAsync_ShouldReturnMappedEntity_WhenAddedSuccessfully()
+        public async Task CreateAsync_ShouldReturnMappedViewModel_WhenAddedSuccessfully()
         {
             // Arrange
-            var entity = new TaskItemME { Id = 1, Title = "New Task", DueDate = DateTime.UtcNow, StatusId = 1 };
-            _domainMock.Setup(d => d.AddAsync(entity)).ReturnsAsync(entity);
-            _mapperMock.Setup(m => m.Map<TaskItemME>(entity)).Returns(entity);
+            var inputViewModel = new TaskItemVM
+            {
+                Id = 0,
+                Title = "New Task",
+                DueDate = new DateTime(2024, 10, 26),
+                StatusId = 1
+            };
+
+            var expectedEntity = new TaskItemME
+            {
+                Id = 1,
+                Title = "New Task",
+                DueDate = new DateTime(2024, 10, 26),
+                StatusId = 1
+            };
+
+            var expectedViewModel = new TaskItemVM
+            {
+                Id = 1,
+                Title = "New Task",
+                DueDate = new DateTime(2024, 10, 26),
+                StatusId = 1
+            };
+
+            // Mock VM -> Entity
+            _mapperMock.Setup(m => m.Map<TaskItemME>(It.IsAny<TaskItemVM>())).Returns(expectedEntity);
+
+            // Mock Entity -> VM
+            _mapperMock.Setup(m => m.Map<TaskItemVM>(It.IsAny<TaskItemME>())).Returns(expectedViewModel);
 
             // Act
-            var result = await _service.CreateAsync(entity);
+            var result = await _service.CreateAsync(inputViewModel);
 
             // Assert
             Assert.NotNull(result);
             Assert.Equal("New Task", result.Title);
+            Assert.Equal(new DateTime(2024, 10, 26), result.DueDate);
         }
+
 
         [Fact]
         public async Task UpdateAsync_ShouldReturnMappedEntity_WhenUpdatedSuccessfully()
@@ -117,7 +175,7 @@ namespace TaskManager.Testing.Test.Services
             // Arrange
             var dto = new TaskItemME
             {
-                Title = "Task",
+                Title = "Updated Task",
                 DueDate = DateTime.UtcNow,
                 StatusId = 1
             };
@@ -130,35 +188,37 @@ namespace TaskManager.Testing.Test.Services
                 StatusId = 1
             };
 
-            var updatedEntity = new TaskItemME
-            {
-                Id = 1,
-                Title = "Updated Task",
-                DueDate = DateTime.UtcNow,
-                StatusId = 1
-            };
+            // Mock GetByIdAsync para traer la entidad original
+            _domainMock.Setup(d => d.GetByIdAsync(1)).ReturnsAsync(entityFromDb);
 
-            // Mock GetByIdAsync para traer la entidad
-            _domainMock
-                .Setup(d => d.GetByIdAsync(1))
-                .ReturnsAsync(entityFromDb);
-
-            // Mock del mapper que mapea DTO sobre la entidad
+            // Mock del mapper que mapea DTO sobre la entidad (in-place)
             _mapperMock
-                .Setup(m => m.Map(dto, entityFromDb));
+                .Setup(m => m.Map(dto, entityFromDb))
+                .Callback<TaskItemME, TaskItemME>((source, dest) =>
+                {
+                    dest.Title = source.Title;
+                    dest.DueDate = source.DueDate;
+                    dest.StatusId = source.StatusId;
+                });
 
-            // Mock del dominio UpdateAsync
-            _domainMock
-                .Setup(d => d.UpdateAsync(entityFromDb))
-                .ReturnsAsync(updatedEntity);
+            // Mock del dominio UpdateAsync que actualiza la entidad y la devuelve
+            _domainMock.Setup(d => d.UpdateAsync(entityFromDb))
+                .ReturnsAsync(() =>
+                {
+                    // Actualizamos la propiedad para simular la persistencia
+                    entityFromDb.Title = dto.Title;
+                    entityFromDb.DueDate = dto.DueDate;
+                    entityFromDb.StatusId = dto.StatusId;
+                    return entityFromDb;
+                });
 
-            // Mock del mapper que convierte a ViewModel
+            // Mock del mapper que convierte la entidad actualizada a ViewModel
             _mapperMock
-                .Setup(m => m.Map<TaskItemME>(It.IsAny<TaskItemME>()))
-                .Returns((TaskItemME e) => new TaskItemME
+                .Setup(m => m.Map<TaskItemVM>(It.IsAny<TaskItemME>()))
+                .Returns((TaskItemME e) => new TaskItemVM
                 {
                     Id = e.Id,
-                    Title = "Updated Task",
+                    Title = e.Title,
                     DueDate = e.DueDate,
                     StatusId = e.StatusId
                 });
@@ -169,6 +229,8 @@ namespace TaskManager.Testing.Test.Services
             // Assert
             Assert.NotNull(result);
             Assert.Equal("Updated Task", result.Title);
+            Assert.Equal(dto.DueDate, result.DueDate);
+            Assert.Equal(dto.StatusId, result.StatusId);
         }
 
 

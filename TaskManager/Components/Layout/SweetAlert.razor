@@ -1,0 +1,13 @@
+﻿@inject IJSRuntime JS
+
+@code {
+    public async Task ShowAlertAsync(string title, string message, string icon = "info")
+    {
+        await JS.InvokeVoidAsync("showSweetAlert", title, message, icon);
+    }
+
+    public async Task<bool> ShowConfirmAsync(string title, string message)
+    {
+        return await JS.InvokeAsync<bool>("showSweetConfirm", title, message);
+    }
+}

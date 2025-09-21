@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using TaskManager.Application.DTO;
 using TaskManager.Application.DTO.DTO;
 using TaskManager.Application.DTO.ViewModel;
 using TaskManager.Application.Interface;
@@ -25,8 +26,10 @@ namespace TaskManager.Extensions
             
             services.AddAutoMapper(cfg => { }, typeof(MappingsProfile).Assembly);
 
-
+            services.AddScoped<IAppService<TaskStatusDTO, TaskStatusVM>, AppService<TaskStatusME, TaskStatusDTO, TaskStatusVM>>();
             services.AddScoped<IAppService<TaskItemDTO, TaskItemVM>, AppService<TaskItemME, TaskItemDTO, TaskItemVM>>();
+
+
             // Repositorios como servicio
             services.AddScoped(typeof(IReadRepository<>), typeof(ReadRepository<>));
             services.AddScoped(typeof(IWriteRepository<>), typeof(WriteRepository<>));

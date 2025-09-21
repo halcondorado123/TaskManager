@@ -1,73 +1,741 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+@using TaskManager.Application.DTO
 @using TaskManager.Application.DTO.DTO
 @using TaskManager.Application.DTO.ViewModel
 @using TaskManager.Application.Interface
-
+@using TaskManager.Application.Service
 @inject IAppService<TaskItemDTO, TaskItemVM> TaskService
+@inject IAppService<TaskStatusDTO, TaskStatusVM> StatusService
+@inject ISweetAlertService SweetAlert
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Task Manager</PageTitle>
 
-<h1>Hello, world!</h1>
-<p>Welcome to your new app.</p>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Gestor de Tareas</h1>
 
-@if (tasks == null)
-{
-    <p><em>Loading...</em></p>
-}
-else if (!tasks.Any())
-{
-    <p>No tasks found.</p>
-}
-else
-{
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Id</th>
-                <th>Title</th>
-                <th>Descripción</th>
-                <th>Estado</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var task in tasks)
+            <!-- Botón Crear Nueva Tarea -->
+            <button class="btn btn-success mb-3" @onclick="ShowCreateModal">
+                ➕ Nueva Tarea
+            </button>
+
+            @if (isLoading)
             {
-                <tr>
-                    <td>@task.Id</td>
-                    <td>@task.Title</td>
-                    <td>@task.Description</td>
-                    <td>@task.StatusName</td>
-                    <td>
-                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteTask(task.Id)">Delete</button>
-                    </td>
-                </tr>
+                <div class="d-flex justify-content-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
             }
-        </tbody>
-    </table>
+
+            <!-- Error State - Solo mostrar si hay error -->
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @errorMessage
+                    <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+                </div>
+            }
+
+            <!-- Success State - Solo mostrar si hay mensaje de éxito -->
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @successMessage
+                    <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
+                </div>
+            }
+
+            <!-- Tasks Table -->
+            @if (tasks == null && !isLoading)
+            {
+                <div class="text-center">
+                    <p class="text-muted">Inicializando...</p>
+                </div>
+            }
+            else if (!isLoading && (tasks == null || !tasks.Any()))
+            {
+                <div class="text-center">
+                    <div class="alert alert-info">
+                        <h5>No hay tareas disponibles</h5>
+                        <p>Haz clic en "Nueva Tarea" para crear la primera tarea.</p>
+                    </div>
+                </div>
+            }
+            else if (!isLoading)
+            {
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Lista de Tareas (@filteredCount)</h5>
+                        <div class="text-muted small">
+                            Página @currentPage de @totalPages
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <!-- Filtro de búsqueda -->
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text">🔍</span>
+                                <input type="text" class="form-control" placeholder="Buscar en cualquier columna..."
+                                       @bind="filterText" @bind:event="oninput" @onkeyup="OnFilterChanged" />
+                                @if (!string.IsNullOrEmpty(filterText))
+                                {
+                                    <button class="btn btn-outline-secondary" type="button" @onclick="ClearFilter">
+                                        ✖️
+                                    </button>
+                                }
+                            </div>
+                            @if (!string.IsNullOrEmpty(filterText) && filteredCount == 0)
+                            {
+                                <small class="text-muted">No se encontraron resultados para "@filterText"</small>
+                            }
+                        </div>
+
+                        <!-- Tabla de tareas -->
+                        @if (PagedTasks.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover mb-0">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th @onclick='() => SortByColumn("Id")' style="cursor: pointer;">
+                                                ID
+                                                @if (currentSortColumn == "Id")
+                                                {
+                                                    <span>@(isSortAscending ? "▲" : "▼")</span>
+                                                }
+                                            </th>
+                                            <th @onclick='() => SortByColumn("Title")' style="cursor: pointer;">
+                                                Título
+                                                @if (currentSortColumn == "Title")
+                                                {
+                                                    <span>@(isSortAscending ? "▲" : "▼")</span>
+                                                }
+                                            </th>
+                                            <th @onclick='() => SortByColumn("Description")' style="cursor: pointer;">
+                                                Descripción
+                                                @if (currentSortColumn == "Description")
+                                                {
+                                                    <span>@(isSortAscending ? "▲" : "▼")</span>
+                                                }
+                                            </th>
+                                            <th @onclick='() => SortByColumn("DueDate")' style="cursor: pointer;">
+                                                Vencimiento
+                                                @if (currentSortColumn == "DueDate")
+                                                {
+                                                    <span>@(isSortAscending ? "▲" : "▼")</span>
+                                                }
+                                            </th>
+                                            <th @onclick='() => SortByColumn("Status")' style="cursor: pointer;">
+                                                Estado
+                                                @if (currentSortColumn == "Status")
+                                                {
+                                                    <span>@(isSortAscending ? "▲" : "▼")</span>
+                                                }
+                                            </th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var task in PagedTasks)
+                                        {
+                                            <tr>
+                                                <td>@task.Id</td>
+                                                <td><strong>@task.Title</strong></td>
+                                                <td>
+                                                    <span title="@task.Description">
+                                                        @(task.Description?.Length > 50 ? task.Description.Substring(0, 50) + "..." : task.Description)
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    @if (task.DueDate.HasValue)
+                                                    {
+                                                        var daysUntilDue = (task.DueDate.Value - DateTime.Now).Days;
+                                                        var dueDateClass = daysUntilDue < 0 ? "text-danger" : daysUntilDue <= 3 ? "text-warning" : "";
+                                                        <span class="@dueDateClass">
+                                                            @task.DueDate.Value.ToString("yyyy-MM-dd")
+                                                        </span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="text-muted">Sin fecha</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <span class="badge @GetStatusBadgeClass(task.StatusName)">
+                                                        @task.StatusName
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <button class="btn btn-outline-info btn-sm" @onclick="() => ShowViewModal(task.Id)" title="Ver detalles">
+                                                            👁️
+                                                        </button>
+                                                        <button class="btn btn-outline-primary btn-sm" @onclick="() => ShowEditModal(task.Id)" title="Editar tarea">
+                                                            ✏️
+                                                        </button>
+                                                        <button class="btn btn-outline-danger btn-sm" @onclick="() => ShowDeleteConfirmation(task.Id, task.Title)" title="Eliminar tarea">
+                                                            🗑️
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else if (!string.IsNullOrEmpty(filterText))
+                        {
+                            <div class="text-center py-4">
+                                <div class="alert alert-warning">
+                                    <h6>No se encontraron tareas</h6>
+                                    <p>No hay tareas que coincidan con el filtro "@filterText"</p>
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="ClearFilter">
+                                        Limpiar filtro
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Paginación -->
+                    @if (totalPages > 1)
+                    {
+                        <div class="card-footer">
+                            <nav aria-label="Navegación de páginas">
+                                <ul class="pagination justify-content-center mb-0">
+                                    <!-- Botón Primera Página -->
+                                    <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                                        <button class="page-link" @onclick="() => GoToPage(1)" disabled="@(currentPage == 1)">
+                                            « Primera
+                                        </button>
+                                    </li>
+
+                                    <!-- Botón Anterior -->
+                                    <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                                        <button class="page-link" @onclick="() => GoToPage(currentPage - 1)" disabled="@(currentPage == 1)">
+                                            ‹ Anterior
+                                        </button>
+                                    </li>
+
+                                    <!-- Páginas -->
+                                    @for (int pageNumber = GetStartPage(); pageNumber <= GetEndPage(); pageNumber++)
+                                    {
+                                        var pageToNavigate = pageNumber;
+                                        <li class="page-item @(pageNumber == currentPage ? "active" : "")">
+                                            <button class="page-link" @onclick="() => GoToPage(pageToNavigate)">
+                                                @pageNumber
+                                            </button>
+                                        </li>
+                                    }
+
+                                    <!-- Botón Siguiente -->
+                                    <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                                        <button class="page-link" @onclick="() => GoToPage(currentPage + 1)" disabled="@(currentPage == totalPages)">
+                                            Siguiente ›
+                                        </button>
+                                    </li>
+
+                                    <!-- Botón Última Página -->
+                                    <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                                        <button class="page-link" @onclick="() => GoToPage(totalPages)" disabled="@(currentPage == totalPages)">
+                                            Última »
+                                        </button>
+                                    </li>
+                                </ul>
+                            </nav>
+
+                            <!-- Info de paginación -->
+                            <div class="text-center text-muted small mt-2">
+                                Mostrando @GetItemsRangeText() de @filteredCount tareas
+                                @if (!string.IsNullOrEmpty(filterText))
+                                {
+                                    <span>(filtradas de @totalCount total)</span>
+                                }
+                            </div>
+
+                            <!-- Selector de tamaño de página -->
+                            <div class="text-center mt-2">
+                                <small class="text-muted me-2">Mostrar:</small>
+                                <select class="form-select form-select-sm d-inline-block w-auto" @onchange="OnPageSizeChanged">
+                                    <option value="5" selected="@(pageSize == 5)">5</option>
+                                    <option value="10" selected="@(pageSize == 10)">10</option>
+                                    <option value="25" selected="@(pageSize == 25)">25</option>
+                                    <option value="50" selected="@(pageSize == 50)">50</option>
+                                </select>
+                                <small class="text-muted ms-2">elementos por página</small>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Crear/Editar Tarea -->
+@if (showModal)
+{
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        @(isEditMode ? "Editar Tarea" : "Nueva Tarea")
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="currentTask" OnValidSubmit="SaveTask">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label class="form-label">Título *</label>
+                            <InputText @bind-Value="currentTask.Title" class="form-control" placeholder="Ingrese el título de la tarea" />
+                            <ValidationMessage For="@(() => currentTask.Title)" class="text-danger" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Descripción</label>
+                            <InputTextArea @bind-Value="currentTask.Description" class="form-control" rows="4" placeholder="Describe la tarea..." />
+                            <ValidationMessage For="@(() => currentTask.Description)" class="text-danger" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Estado *</label>
+                            <InputSelect @bind-Value="currentTask.StatusId" class="form-select">
+                                <option value="0">-- Selecciona un estado --</option>
+                                @foreach (var status in GetAvailableStatusesForForm())
+                                {
+                                    <option value="@status.Key">@status.Value</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => currentTask.StatusId)" class="text-danger" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Fecha de vencimiento *</label>
+                            <InputDate @bind-Value="currentTask.DueDate" class="form-control" />
+                            <ValidationMessage For="@(() => currentTask.DueDate)" class="text-danger" />
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary" disabled="@isProcessing">
+                                @if (isProcessing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                @(isEditMode ? "Actualizar" : "Crear")
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+<!-- Modal para Ver Detalles -->
+@if (showViewModal && selectedTask != null)
+{
+    <div class="modal fade show" style="display: block;" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalles de la Tarea</h5>
+                    <button type="button" class="btn-close" @onclick="CloseViewModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-2">
+                        <div class="col-sm-3"><strong>ID:</strong></div>
+                        <div class="col-sm-9">@selectedTask.Id</div>
+                    </div>
+                    <hr />
+                    <div class="row mb-2">
+                        <div class="col-sm-3"><strong>Título:</strong></div>
+                        <div class="col-sm-9">@selectedTask.Title</div>
+                    </div>
+                    <hr />
+                    <div class="row mb-2">
+                        <div class="col-sm-3"><strong>Descripción:</strong></div>
+                        <div class="col-sm-9">@(selectedTask.Description ?? "Sin descripción")</div>
+                    </div>
+                    <hr />
+                    <div class="row mb-2">
+                        <div class="col-sm-3"><strong>Fecha de Vencimiento:</strong></div>
+                        <div class="col-sm-9">
+                            @if (selectedTask.DueDate.HasValue)
+                            {
+                                @selectedTask.DueDate.Value.ToString("dd/MM/yyyy")
+                            }
+                            else
+                            {
+                                <span class="text-muted">Sin fecha</span>
+                            }
+                        </div>
+                    </div>
+                    <hr />
+                    <div class="row mb-2">
+                        <div class="col-sm-3"><strong>Estado:</strong></div>
+                        <div class="col-sm-9">
+                            <span class="badge @GetStatusBadgeClass(selectedTask.StatusName)">
+                                @selectedTask.StatusName
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseViewModal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" @onclick="() => ShowEditModal(selectedTask.Id)">Editar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
 }
 
 @code {
-    private List<TaskItemVM> tasks;
+    // Variables de clase corregidas
+    private List<TaskItemVM>? tasks;
+    private TaskItemDTO currentTask = new();
+    private TaskItemVM? selectedTask;
+    private List<TaskStatusVM> availableStatuses = new();
 
+    private bool showModal = false;
+    private bool showViewModal = false;
+    private bool isEditMode = false;
+    private bool isLoading = true;
+    private bool isProcessing = false;
+
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private int editingTaskId = 0;
+
+    // Paginación corregida
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalCount = 0; // Total de registros SIN filtrar
+    private int filteredCount = 0; // Total de registros CON filtro aplicado
+
+    private string filterText = "";
+    private string currentSortColumn = "";
+    private bool isSortAscending = true;
+
+    // Propiedades calculadas corregidas
+    private int totalPages => (int)Math.Ceiling((double)filteredCount / pageSize);
+
+    private IEnumerable<TaskItemVM> FilteredTasks
+    {
+        get
+        {
+            if (tasks == null) return Enumerable.Empty<TaskItemVM>();
+
+            var query = tasks.AsEnumerable();
+
+            // Filtrado global
+            if (!string.IsNullOrWhiteSpace(filterText))
+            {
+                query = query.Where(t =>
+                    (t.Id.ToString().Contains(filterText)) ||
+                    (t.Title?.Contains(filterText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (t.Description?.Contains(filterText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (t.StatusName?.Contains(filterText, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (t.DueDate?.ToString("yyyy-MM-dd").Contains(filterText) ?? false)
+                );
+            }
+
+            // Ordenamiento
+            query = currentSortColumn switch
+            {
+                "Id" => isSortAscending ? query.OrderBy(t => t.Id) : query.OrderByDescending(t => t.Id),
+                "Title" => isSortAscending ? query.OrderBy(t => t.Title) : query.OrderByDescending(t => t.Title),
+                "Description" => isSortAscending ? query.OrderBy(t => t.Description) : query.OrderByDescending(t => t.Description),
+                "Status" => isSortAscending ? query.OrderBy(t => t.StatusName) : query.OrderByDescending(t => t.StatusName),
+                "DueDate" => isSortAscending ? query.OrderBy(t => t.DueDate) : query.OrderByDescending(t => t.DueDate),
+                _ => query
+            };
+
+            return query;
+        }
+    }
+
+    private IEnumerable<TaskItemVM> PagedTasks
+    {
+        get
+        {
+            var filtered = FilteredTasks;
+            filteredCount = filtered.Count(); // Actualizar el count filtrado
+
+            // Validar que currentPage no sea mayor al total de páginas
+            if (currentPage > totalPages && totalPages > 0)
+            {
+                currentPage = totalPages;
+            }
+
+            return filtered.Skip((currentPage - 1) * pageSize).Take(pageSize);
+        }
+    }
+
+    // Métodos corregidos
     protected override async Task OnInitializedAsync()
     {
-        // Cargar la primera página con 10 registros
-        var pagedResult = await TaskService.GetAllAsync(1, 10);
-        tasks = pagedResult.Items.ToList();
+        await LoadTasks();
+        await LoadStatuses();
     }
 
-    private async Task DeleteTask(int id)
+    private async Task LoadStatuses()
     {
-        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete task {id}?");
-        if (!confirmed) return;
-
-        await TaskService.DeleteAsync(id);
-        // Recargar grilla
-        var pagedResult = await TaskService.GetAllAsync(1, 10);
-        tasks = pagedResult.Items.ToList();
+        try
+        {
+            var pagedResult = await StatusService.GetAllAsync(1, 10);
+            availableStatuses = pagedResult.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            await SweetAlert.ShowWarningAsync("Advertencia", "No se pudieron cargar los estados. Algunas funciones pueden estar limitadas.");
+            availableStatuses = new List<TaskStatusVM>();
+        }
     }
 
-    [Inject]
-    private IJSRuntime JS { get; set; }
+    private async Task LoadTasks()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+
+            var pagedResult = await TaskService.GetAllAsync(1, int.MaxValue);
+            tasks = pagedResult.Items.ToList();
+            totalCount = pagedResult.TotalCount;
+            filteredCount = totalCount;
+            currentPage = 1;
+        }
+        catch (Exception ex)
+        {
+            await SweetAlert.ShowErrorAsync("Error de carga", $"No se pudieron cargar las tareas: {ex.Message}");
+            tasks = new List<TaskItemVM>();
+            totalCount = 0;
+            filteredCount = 0;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+
+    private void SortByColumn(string columnName)
+    {
+        if (currentSortColumn == columnName)
+            isSortAscending = !isSortAscending;
+        else
+        {
+            currentSortColumn = columnName;
+            isSortAscending = true;
+        }
+
+        // Resetear a la primera página después de ordenar
+        currentPage = 1;
+        StateHasChanged();
+    }
+
+    // Métodos de navegación de páginas
+    private void GoToPage(int page)
+    {
+        if (page >= 1 && page <= totalPages)
+        {
+            currentPage = page;
+            StateHasChanged();
+        }
+    }
+
+    private int GetStartPage()
+    {
+        var start = Math.Max(1, currentPage - 2);
+        return Math.Min(start, Math.Max(1, totalPages - 4));
+    }
+
+    private int GetEndPage()
+    {
+        var end = Math.Min(totalPages, currentPage + 2);
+        return Math.Max(end, Math.Min(5, totalPages));
+    }
+
+    private string GetItemsRangeText()
+    {
+        if (filteredCount == 0) return "0";
+
+        var start = (currentPage - 1) * pageSize + 1;
+        var end = Math.Min(currentPage * pageSize, filteredCount);
+
+        return $"{start}-{end}";
+    }
+
+    // Método para manejar cambios en el filtro
+    private void OnFilterChanged()
+    {
+        currentPage = 1; // Resetear a la primera página cuando cambia el filtro
+        StateHasChanged();
+    }
+
+    // Método auxiliar para actualizar el estado después de operaciones CRUD
+    private async Task RefreshData()
+    {
+        await LoadTasks();
+    }
+
+    // Método para obtener la clase CSS del badge según el estado
+    private string GetStatusBadgeClass(string? statusName)
+    {
+        return statusName?.ToLower() switch
+        {
+            "pendiente" => "bg-warning",
+            "en progreso" => "bg-info",
+            "completada" => "bg-success",
+            "cancelada" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    // Método para limpiar el filtro
+    private void ClearFilter()
+    {
+        filterText = "";
+        currentPage = 1;
+        StateHasChanged();
+    }
+
+    // Método para manejar cambio de tamaño de página
+    private void OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int newPageSize))
+        {
+            pageSize = newPageSize;
+            currentPage = 1; // Resetear a la primera página
+            StateHasChanged();
+        }
+    }
+
+    // Método para obtener estados disponibles para el formulario
+    private Dictionary<int, string> GetAvailableStatusesForForm()
+    {
+        return availableStatuses.ToDictionary(s => s.Id, s => s.Name);
+    }
+
+    // Métodos de modal (agregar si no existen)
+    private void ShowCreateModal()
+    {
+        currentTask = new TaskItemDTO();
+        isEditMode = false;
+        showModal = true;
+    }
+
+    private void ShowEditModal(int taskId)
+    {
+        var task = tasks?.FirstOrDefault(t => t.Id == taskId);
+        if (task != null)
+        {
+            currentTask = new TaskItemDTO
+            {
+                Id = task.Id,
+                Title = task.Title,
+                Description = task.Description,
+                StatusId = task.StatusId,
+                DueDate = task.DueDate
+            };
+            isEditMode = true;
+            editingTaskId = taskId;
+            showModal = true;
+            CloseViewModal(); // Cerrar modal de vista si está abierto
+        }
+    }
+
+    private async Task ShowViewModal(int taskId)
+    {
+        selectedTask = tasks?.FirstOrDefault(t => t.Id == taskId);
+        if (selectedTask != null)
+        {
+            showViewModal = true;
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        currentTask = new TaskItemDTO();
+        isEditMode = false;
+        editingTaskId = 0;
+        errorMessage = string.Empty;
+    }
+
+    private void CloseViewModal()
+    {
+        showViewModal = false;
+        selectedTask = null;
+    }
+
+    private async Task SaveTask()
+    {
+        try
+        {
+            isProcessing = true;
+            errorMessage = string.Empty;
+
+            if (isEditMode)
+            {
+                await TaskService.UpdateAsync(currentTask, editingTaskId);
+                await SweetAlert.ShowSuccessAsync("¡Actualizado!", "La tarea ha sido actualizada exitosamente.");
+            }
+            else
+            {
+                await TaskService.CreateAsync(currentTask);
+                await SweetAlert.ShowSuccessAsync("¡Creado!", "La tarea ha sido creada exitosamente.");
+            }
+
+            CloseModal();
+            await RefreshData();
+        }
+        catch (Exception ex)
+        {
+            await SweetAlert.ShowErrorAsync("Error", $"No se pudo guardar la tarea: {ex.Message}");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task ShowDeleteConfirmation(int taskId, string? taskTitle)
+    {
+        var confirmed = await SweetAlert.ShowConfirmAsync(
+            "Confirmar eliminación",
+            $"¿Estás seguro de que deseas eliminar la tarea '{taskTitle}'?\n\nEsta acción no se puede deshacer."
+        );
+
+        if (confirmed)
+        {
+            await DeleteTask(taskId);
+        }
+    }
+
+    private async Task DeleteTask(int taskId)
+    {
+        try
+        {
+            await TaskService.DeleteAsync(taskId);
+            await SweetAlert.ShowSuccessAsync("¡Eliminado!", "La tarea ha sido eliminada exitosamente.");
+            await RefreshData();
+        }
+        catch (Exception ex)
+        {
+            await SweetAlert.ShowErrorAsync("Error", $"No se pudo eliminar la tarea: {ex.Message}");
+        }
+    }
 }
