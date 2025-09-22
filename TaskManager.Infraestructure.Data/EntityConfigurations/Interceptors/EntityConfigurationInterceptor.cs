@@ -71,7 +71,6 @@ namespace TaskManager.Infraestructure.Data.EntityConfigurations.Interceptors
                 }
                 else if (entry.State == EntityState.Deleted)
                 {
-                    // Lógica para el borrado suave
                     if (IsSoftDeleteable(entry))
                     {
                         entry.State = EntityState.Modified;

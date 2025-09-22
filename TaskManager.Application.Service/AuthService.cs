@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 using TaskManager.Application.DTO.DTO.Identity;
 using TaskManager.Application.Interface;
@@ -29,13 +27,12 @@ namespace TaskManager.Application.Service
             if (user == null)
                 return new LoginResponseDTO { IsSuccessful = false, Message = "Usuario o contraseña incorrectos" };
 
-            // Limpiar sesión anterior
             await _signInManager.SignOutAsync();
 
             var result = await _signInManager.PasswordSignInAsync(
                 user,
                 loginRequest.Password,
-                isPersistent: true, // Mantener sesión
+                isPersistent: true,
                 lockoutOnFailure: false
             );
 
@@ -63,14 +60,12 @@ namespace TaskManager.Application.Service
         {
             try
             {
-                // Validar que el email no esté en uso
                 var existingUser = await _userManager.FindByEmailAsync(registerRequest.Email);
                 if (existingUser != null)
                 {
                     throw new InvalidOperationException("El email ya está registrado");
                 }
 
-                // Crear nuevo usuario
                 var user = new ApplicationUser
                 {
                     UserName = registerRequest.Email,
@@ -79,7 +74,6 @@ namespace TaskManager.Application.Service
                     EmailConfirmed = true
                 };
 
-                // Crear usuario con contraseña
                 var result = await _userManager.CreateAsync(user, registerRequest.Password);
                 if (!result.Succeeded)
                 {
@@ -87,7 +81,6 @@ namespace TaskManager.Application.Service
                     throw new InvalidOperationException($"Error al crear usuario: {errors}");
                 }
 
-                // Asignar rol por defecto
                 await _userManager.AddToRoleAsync(user, "Usuario");
 
                 return user;
@@ -124,7 +117,5 @@ namespace TaskManager.Application.Service
             var appUser = await _userManager.FindByIdAsync(userId);
             return appUser != null;
         }
-
-
     }
 }

@@ -1,8 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
-using TaskManager.Domain.Entities.Models.Identity;
 
 namespace TaskManager.Application.Service
 {
@@ -12,8 +9,6 @@ namespace TaskManager.Application.Service
 
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
         {
-            // 👇 Aquí decides si el usuario está logueado o no
-            // Por ahora simulo que no hay sesión
             return Task.FromResult(new AuthenticationState(_anonymous));
         }
 

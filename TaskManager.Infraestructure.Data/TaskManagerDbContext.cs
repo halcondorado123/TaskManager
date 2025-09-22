@@ -8,7 +8,7 @@ using TaskManager.Infraestructure.Data.EntityConfigurations.Interceptors;
 
 namespace TaskManager.Infraestructure.Data
 {
-    public class TaskManagerDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>, IUnitOfWork, IDatabaseContext
+    public class TaskManagerDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>, IDatabaseContext
     {
         private readonly IContextDefaultProvider _contextDefaultProvider;
 

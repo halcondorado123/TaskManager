@@ -10,16 +10,14 @@ namespace TaskManager.Infraestructure.Data.Configuration.Identity
     {
         public void Configure(EntityTypeBuilder<ApplicationRole> builder)
         {
-            builder.ToTable("AspNetRoles"); // Tabla de Identity
+            builder.ToTable("AspNetRoles");
 
             builder.HasKey(r => r.Id);
 
-            // Propiedades de IdentityRole<Guid>
             builder.Property(r => r.Name).HasMaxLength(256);
             builder.Property(r => r.NormalizedName).HasMaxLength(256);
             builder.Property(r => r.ConcurrencyStamp);
 
-            // Roles estáticos con todos sus datos
             builder.HasData(
                 new ApplicationRole
                 {

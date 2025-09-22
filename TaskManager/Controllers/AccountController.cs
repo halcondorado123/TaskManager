@@ -1,10 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using TaskManager.Application.DTO.DTO.Identity;
 using TaskManager.Application.Interface;
-using TaskManager.Application.Service;
-using TaskManager.Domain.Entities.Models.Identity;
 
 namespace TaskManager.Controllers
 {

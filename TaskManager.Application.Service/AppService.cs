@@ -58,8 +58,6 @@ namespace TaskManager.Application.Service
             };
         }
 
-
-
         public async Task<TViewModel?> GetByIdAsync(int id)
         {
            var entity = await _domain.GetByIdAsync(id);

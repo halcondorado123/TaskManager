@@ -27,7 +27,14 @@
         </div>
 
 
-        <button class="btn btn-link" @onclick="HandleLogout">Cerrar sesión</button>
+        <div class="flex-grow-1"></div>
+
+        <div class="nav-item px-3 text-center mb-3">
+            <button class="btn btn-outline-danger btn-sm w-75" @onclick="HandleLogout" title="Cerrar sesión">
+                <i class="fas fa-sign-out-alt me-1"></i> Cerrar sesión
+            </button>
+        </div>
+
     </nav>
 </div>
 
