@@ -2,8 +2,7 @@
 
 namespace TaskManager.Domain.Entities.Models.Identity
 {
-    public class ApplicationUser : IdentityUser<Guid>
+    public class ApplicationRole : IdentityRole<Guid>
     {
-        public required string FullName { get; set; }
     }
 }

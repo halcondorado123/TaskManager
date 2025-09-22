@@ -1,4 +1,10 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@using Microsoft.EntityFrameworkCore.Metadata.Internal
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+
+@using static System.Net.WebRequestMethods
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">TaskManager</a>
     </div>
@@ -9,22 +15,26 @@
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="flex-column">
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+            <NavLink class="nav-link" href="home" Match="NavLinkMatch.All">
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
             </NavLink>
         </div>
 
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Contador
+            <NavLink class="nav-link" href="/session/register-user" Match="NavLinkMatch.All">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Registrar
             </NavLink>
         </div>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Clima
-            </NavLink>
-        </div>
+
+        <button class="btn btn-link" @onclick="HandleLogout">Cerrar sesión</button>
     </nav>
 </div>
 
+@code {
+    private async Task HandleLogout()
+    {
+        await Http.PostAsync("api/account/logout", null);
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}

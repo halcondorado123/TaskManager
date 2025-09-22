@@ -1,21 +1,21 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using TaskManager.Domain.Entities.Models.Identity;
 using TaskManager.Domain.Entities.Primitives;
-using TaskManager.Infraestructure.Data.EntityConfigurations.Conventions;
 using TaskManager.Infraestructure.Data.EntityConfigurations.DataAccess.Contracts;
 using TaskManager.Infraestructure.Data.EntityConfigurations.Interceptors;
 
 namespace TaskManager.Infraestructure.Data
 {
-    public class TaskManagerDbContext(DbContextOptions<TaskManagerDbContext> options, IContextDefaultProvider contextDefaultProvider)
-            : DbContext(options), IUnitOfWork, IDatabaseContext
+    public class TaskManagerDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, Guid>, IUnitOfWork, IDatabaseContext
     {
-        private readonly IContextDefaultProvider _contextDefaultProvider = contextDefaultProvider;
+        private readonly IContextDefaultProvider _contextDefaultProvider;
 
-        protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+        public TaskManagerDbContext(DbContextOptions<TaskManagerDbContext> options, IContextDefaultProvider contextDefaultProvider)
+            : base(options)
         {
-            configurationBuilder.Conventions.Add(_ => new EntityConfigurationConvention());
-            base.ConfigureConventions(configurationBuilder);
+            _contextDefaultProvider = contextDefaultProvider;
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -24,7 +24,7 @@ namespace TaskManager.Infraestructure.Data
 
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(TaskManagerDbContext).Assembly);
 
-            // Filtro global de SoftDelete
+            // Filtro global SoftDelete
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {
                 var implementedInterface = entityType.ClrType.GetInterfaces()
@@ -43,7 +43,6 @@ namespace TaskManager.Infraestructure.Data
             }
         }
 
-
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.AddInterceptors(new EntityConfigurationInterceptor<TaskManagerDbContext>(_contextDefaultProvider));
@@ -51,6 +50,6 @@ namespace TaskManager.Infraestructure.Data
         }
 
         public DbSet<TDbSet> Repository<TDbSet>() where TDbSet : class
-          => Set<TDbSet>();
+            => Set<TDbSet>();
     }
 }

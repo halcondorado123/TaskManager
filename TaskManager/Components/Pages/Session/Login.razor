@@ -1,0 +1,108 @@
+﻿@page "/login"
+@using TaskManager.Application.DTO.DTO.Identity
+@using TaskManager.Shared
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@layout EmptyLayout
+
+<PageTitle>Iniciar Sesión</PageTitle>
+
+<div class="min-vh-100 d-flex align-items-center justify-content-center bg-light">
+    <div class="card shadow-lg" style="max-width: 400px; width: 100%;">
+        <div class="card-body p-4">
+            <div class="text-center mb-4">
+                <h2 class="card-title">Task Manager</h2>
+                <p class="text-muted">Inicia sesión en tu cuenta</p>
+            </div>
+
+            @if (isLoading)
+            {
+                <div class="text-center p-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Iniciando sesión...</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <EditForm Model="loginDto" OnValidSubmit="HandleLogin">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger mb-3" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Correo Electrónico</label>
+                        <InputText @bind-Value="loginDto.Email" class="form-control" placeholder="ejemplo@correo.com" />
+                        <ValidationMessage For="@(() => loginDto.Email)" class="text-danger" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Contraseña</label>
+                        <InputText @bind-Value="loginDto.Password" type="password" class="form-control" placeholder="Tu contraseña" />
+                        <ValidationMessage For="@(() => loginDto.Password)" class="text-danger" />
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg" disabled="@isLoading">Iniciar Sesión</button>
+                    </div>
+                </EditForm>
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger mt-3">@errorMessage</div>
+                }
+
+                <hr class="my-4">
+                <div class="text-center">
+                    <p class="mb-0">
+                        ¿No tienes cuenta?
+                        <a href="/register" class="text-decoration-none">Regístrate aquí</a>
+                    </p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginRequestDTO loginDto = new();
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+            StateHasChanged();
+
+            var loginRequest = new LoginRequestDTO
+            {
+                Email = loginDto.Email,
+                Password = loginDto.Password
+            };
+
+            var baseUri = Navigation.BaseUri;
+            var response = await Http.PostAsJsonAsync($"{baseUri}api/account/login", loginRequest);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/home", forceLoad: true, replace: true);
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                errorMessage = error.Replace("\"", "");
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error inesperado: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

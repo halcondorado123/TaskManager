@@ -1,0 +1,43 @@
+﻿@* Shared/LogoutComponent.razor *@
+@using TaskManager.Application.Interface
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<AuthorizeView>
+    <Authorized>
+        <div class="navbar-nav">
+            <span class="navbar-text me-3">
+                Hola, @context.User.Identity?.Name
+            </span>
+            <button class="btn btn-outline-light" @onclick="HandleLogout">
+                <i class="bi bi-box-arrow-right"></i>
+                Cerrar Sesión
+            </button>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="navbar-nav">
+            <a class="nav-link" href="/login">Iniciar Sesión</a>
+            <a class="nav-link" href="/register">Registrarse</a>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private async Task HandleLogout()
+    {
+        try
+        {
+            await AuthService.LogoutAsync();
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            // Manejo de errores si es necesario
+            Console.WriteLine($"Error during logout: {ex.Message}");
+            Navigation.NavigateTo("/login", forceLoad: true);
+        }
+    }
+}
