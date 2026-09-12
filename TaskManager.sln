@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.14.36414.22
+# Visual Studio Version 18
+VisualStudioVersion = 18.9.12120.119 stable
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskManager", "TaskManager\TaskManager.csproj", "{7F44CC51-0494-4F3A-B129-1D76B3086C78}"
 EndProject
@@ -36,6 +36,13 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskManager.Testing.Test", "TaskManager.Testing.Test\TaskManager.Testing.Test.csproj", "{3741E46C-AC55-42CD-8977-1916255FE95A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskManager.Transversal.Mapper", "TaskManager.Transversal.Mapper\TaskManager.Transversal.Mapper.csproj", "{03105D7F-DA32-467E-BC65-E7AEB1B07A23}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{49F17577-6B8F-406D-AEF9-1E14E5EC98B1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{98EF09BA-ABF4-4883-9F23-C4D4EE49056B}"
+	ProjectSection(SolutionItems) = preProject
+		ci.yml = ci.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -107,6 +114,7 @@ Global
 		{F97B8962-A4D3-406F-9337-D5F17E9362F2} = {6FCAED0D-44FE-43FC-AF29-30CB6FCCB62C}
 		{3741E46C-AC55-42CD-8977-1916255FE95A} = {531DE8C8-12F3-42D2-8F4F-EAA828D530DC}
 		{03105D7F-DA32-467E-BC65-E7AEB1B07A23} = {A0310864-4CE7-4A1D-9EB3-5D2D39F6A71E}
+		{98EF09BA-ABF4-4883-9F23-C4D4EE49056B} = {49F17577-6B8F-406D-AEF9-1E14E5EC98B1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CB55A052-6906-465C-BC41-5805B389C92C}
