@@ -23,7 +23,7 @@ jobs:
         run: dotnet restore TaskManager.sln
 
       - name: Build solution
-        run: dotnet build TaskManager.sln --no-restore --configuration Release --warnaserror:false
+        run: dotnet build TaskManager.sln --no-restore --configuration Release /p:TreatWarningsAsErrors=false
 
       - name: Run unit tests
-        run: dotnet test --no-build --configuration Release --warnaserror:false
+        run: dotnet test TaskManager.sln --no-build --configuration Release
