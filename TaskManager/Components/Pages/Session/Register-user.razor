@@ -211,8 +211,14 @@
                     confirmButtonText = "OK"
                 });
 
-                await Task.Delay(2000);
-                Navigation.NavigateTo("/home", true);
+                // Limpiar formulario
+                registerUserDto = new RegisterUserDTO();
+
+                // Limpiar mensajes
+                errorMessage = string.Empty;
+                showSuccessMessage = string.Empty;
+
+                StateHasChanged();
             }
             else
             {

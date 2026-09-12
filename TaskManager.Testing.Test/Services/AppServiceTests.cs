@@ -71,7 +71,9 @@ namespace TaskManager.Testing.Test.Services
             // Assert
             Assert.NotNull(result);
             Assert.Equal(page, result.Page);
-            Assert.Equal(pageSize, result.PageSize);
+
+            Assert.Equal(3, result.PageSize);
+            //Assert.Equal(pageSize, result.PageSize);
             Assert.Equal(totalCount, result.TotalCount);
             Assert.Equal(pageSize, result.Items.Count()); // Solo los primeros "pageSize" elementos
             Assert.Equal("Task 1", result.Items.First().Title);
@@ -120,6 +122,7 @@ namespace TaskManager.Testing.Test.Services
 
             // Assert
             Assert.NotNull(result);
+            //Assert.Equal("Tarea incorrecta", result.Title);
             Assert.Equal("Test", result.Title);
             Assert.Equal("Pendiente", result.StatusName);
         }
@@ -164,6 +167,7 @@ namespace TaskManager.Testing.Test.Services
 
             // Assert
             Assert.NotNull(result);
+            //Assert.Equal("Task Incorrecta", result.Title);
             Assert.Equal("New Task", result.Title);
             Assert.Equal(new DateTime(2024, 10, 26), result.DueDate);
         }
@@ -228,6 +232,7 @@ namespace TaskManager.Testing.Test.Services
 
             // Assert
             Assert.NotNull(result);
+            //Assert.Equal("Task Not Updated", result.Title);
             Assert.Equal("Updated Task", result.Title);
             Assert.Equal(dto.DueDate, result.DueDate);
             Assert.Equal(dto.StatusId, result.StatusId);
@@ -245,6 +250,7 @@ namespace TaskManager.Testing.Test.Services
             var result = await _service.DeleteAsync(1);
 
             // Assert
+            //Assert.False(result);
             Assert.True(result);
         }
     }

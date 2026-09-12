@@ -10,15 +10,18 @@ namespace TaskManager.Application.Service
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly RoleManager<ApplicationRole> _roleManager;
         private readonly CustomAuthenticationStateProvider _authStateProvider;
 
         public AuthService(UserManager<ApplicationUser> userManager,
                            SignInManager<ApplicationUser> signInManager,
-                           CustomAuthenticationStateProvider authStateProvider)
+                           CustomAuthenticationStateProvider authStateProvider,
+                           RoleManager<ApplicationRole> roleManager)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _authStateProvider = authStateProvider;
+            _roleManager = roleManager;
         }
 
         public async Task<LoginResponseDTO> LoginAsync(LoginRequestDTO loginRequest)
@@ -58,37 +61,48 @@ namespace TaskManager.Application.Service
 
         public async Task<ApplicationUser> RegisterAsync(RegisterRequestDTO registerRequest)
         {
-            try
+            var existingUser = await _userManager.FindByEmailAsync(registerRequest.Email);
+
+            if (existingUser != null)
             {
-                var existingUser = await _userManager.FindByEmailAsync(registerRequest.Email);
-                if (existingUser != null)
-                {
-                    throw new InvalidOperationException("El email ya está registrado");
-                }
-
-                var user = new ApplicationUser
-                {
-                    UserName = registerRequest.Email,
-                    Email = registerRequest.Email,
-                    FullName = registerRequest.FullName,
-                    EmailConfirmed = true
-                };
-
-                var result = await _userManager.CreateAsync(user, registerRequest.Password);
-                if (!result.Succeeded)
-                {
-                    var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-                    throw new InvalidOperationException($"Error al crear usuario: {errors}");
-                }
-
-                await _userManager.AddToRoleAsync(user, "Usuario");
-
-                return user;
+                throw new InvalidOperationException("El email ya está registrado");
             }
-            catch (Exception)
+
+            var user = new ApplicationUser
             {
-                throw;
+                UserName = registerRequest.Email,
+                Email = registerRequest.Email,
+                FullName = registerRequest.FullName,
+                EmailConfirmed = true
+            };
+
+            var result = await _userManager.CreateAsync(user, registerRequest.Password);
+
+            if (!result.Succeeded)
+            {
+                var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+                throw new InvalidOperationException($"Error al crear usuario: {errors}");
             }
+
+            // Rol por defecto
+            const string defaultRole = "Asesor";
+
+            // Validar que exista el rol
+            if (!await _roleManager.RoleExistsAsync(defaultRole))
+            {
+                throw new InvalidOperationException($"El rol '{defaultRole}' no existe.");
+            }
+
+            // Asignar el rol
+            var roleResult = await _userManager.AddToRoleAsync(user, defaultRole);
+
+            if (!roleResult.Succeeded)
+            {
+                var errors = string.Join("; ", roleResult.Errors.Select(e => e.Description));
+                throw new InvalidOperationException($"Error al asignar el rol: {errors}");
+            }
+
+            return user;
         }
 
         public async Task<bool> LogoutAsync()

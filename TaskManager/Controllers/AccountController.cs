@@ -62,7 +62,6 @@ namespace TaskManager.Controllers
             }
             catch (Exception ex)
             {
-                // Log aquí si quieres
                 return StatusCode(500, "Error interno del servidor: " + ex.Message);
             }
         }

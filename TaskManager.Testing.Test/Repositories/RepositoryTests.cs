@@ -47,6 +47,7 @@ namespace TaskManager.Testing.Test.Repositories
 
             // Assert
             Assert.Equal(5, totalCount); // total de registros
+            //Assert.Equal(6, totalCount); // total de registros
             Assert.Equal(pageSize, pagedEntities.Count()); // cantidad devuelta por página
             Assert.Equal("Task 3", pagedEntities.First().Title); // primer elemento de la página 2
             Assert.Equal("Task 4", pagedEntities.Last().Title);  // último elemento de la página 2
@@ -79,6 +80,7 @@ namespace TaskManager.Testing.Test.Repositories
 
             await repo.AddAsync(entity);
 
+            //Assert.Equal(2, context.Set<TaskItemME>().Count());
             Assert.Single(context.Set<TaskItemME>());
         }
 
@@ -96,6 +98,7 @@ namespace TaskManager.Testing.Test.Repositories
             await repo.UpdateAsync(entity);
 
             var updated = await context.Set<TaskItemME>().FindAsync(1);
+            //Assert.Equal("Failed Task", updated.Title);
             Assert.Equal("Updated Task", updated.Title);
         }
 
@@ -112,6 +115,7 @@ namespace TaskManager.Testing.Test.Repositories
             await context.SaveChangesAsync();
 
             var deleted = await context.Set<TaskItemME>().FindAsync(1);
+            //Assert.NotNull(deleted);
             Assert.Null(deleted);
         }
     }
