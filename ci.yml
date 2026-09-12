@@ -2,9 +2,9 @@ name: TaskManager CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ master, main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ master, main ]
 
 jobs:
   build-and-test:
@@ -23,7 +23,7 @@ jobs:
         run: dotnet restore TaskManager.sln
 
       - name: Build solution
-        run: dotnet build TaskManager.sln --no-restore --configuration Release /p:TreatWarningsAsErrors=false
+        run: dotnet build TaskManager.sln --no-restore --configuration Release --warnaserror:false
 
       - name: Run unit tests
-        run: dotnet test TaskManager.Testing/TaskManager.Testing.Test/TaskManager.Testing.Test.csproj --no-build --configuration Release /p:TreatWarningsAsErrors=false
+        run: dotnet test --no-build --configuration Release --warnaserror:false
